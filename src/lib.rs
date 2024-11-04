@@ -18,8 +18,8 @@ use std::{
 };
 
 pub struct Terminal {
-    pub stdin: IoFd,
-    pub stdout: IoFd,
+    pub stdin: Option<IoFd>,
+    pub stdout: Option<IoFd>,
     child: Child,
 }
 
@@ -55,8 +55,8 @@ impl Terminal {
         }
 
         Ok(Self {
-            stdin: IoFd(owner.as_fd().try_clone_to_owned()?),
-            stdout: IoFd(owner.as_fd().try_clone_to_owned()?),
+            stdin: Some(IoFd(owner.as_fd().try_clone_to_owned()?)),
+            stdout: Some(IoFd(owner.as_fd().try_clone_to_owned()?)),
             child: command.spawn()?,
         })
     }
