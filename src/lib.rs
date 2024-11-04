@@ -21,7 +21,7 @@ pub struct Terminal {
     owner: PtyMaster,
     pub stdin: Option<IoFd>,
     pub stdout: Option<IoFd>,
-    child: Child,
+    pub child: Option<Child>,
 }
 
 impl Terminal {
@@ -58,17 +58,9 @@ impl Terminal {
         Ok(Self {
             stdin: Some(IoFd(owner.as_fd().try_clone_to_owned()?)),
             stdout: Some(IoFd(owner.as_fd().try_clone_to_owned()?)),
-            child: command.spawn()?,
+            child: Some(command.spawn()?),
             owner,
         })
-    }
-
-    pub fn kill(&mut self) -> io::Result<()> {
-        self.child.kill()
-    }
-
-    pub fn wait(&mut self) -> io::Result<ExitStatus> {
-        self.child.wait()
     }
 
     pub fn resize(&self, size: Winsize) -> io::Result<()> {
