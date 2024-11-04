@@ -4,8 +4,8 @@ use nix::{
         FcntlArg::{self, F_SETFD},
         FdFlag, OFlag,
     },
-    libc::{close, ioctl, setsid, TIOCSCTTY},
-    pty::{grantpt, posix_openpt, ptsname_r, unlockpt},
+    libc::{close, ioctl, setsid, TIOCSCTTY, TIOCSWINSZ},
+    pty::{grantpt, posix_openpt, ptsname_r, unlockpt, PtyMaster, Winsize},
 };
 use std::{
     fs::{File, OpenOptions},
@@ -18,6 +18,7 @@ use std::{
 };
 
 pub struct Terminal {
+    owner: PtyMaster,
     pub stdin: Option<IoFd>,
     pub stdout: Option<IoFd>,
     child: Child,
@@ -58,6 +59,7 @@ impl Terminal {
             stdin: Some(IoFd(owner.as_fd().try_clone_to_owned()?)),
             stdout: Some(IoFd(owner.as_fd().try_clone_to_owned()?)),
             child: command.spawn()?,
+            owner,
         })
     }
 
@@ -67,6 +69,13 @@ impl Terminal {
 
     pub fn wait(&mut self) -> io::Result<ExitStatus> {
         self.child.wait()
+    }
+
+    pub fn resize(&self, size: Winsize) -> io::Result<()> {
+        match unsafe { ioctl(self.owner.as_raw_fd(), TIOCSWINSZ, &size) != 0 } {
+            true => Err(io::Error::last_os_error()),
+            false => Ok(()),
+        }
     }
 }
 
